@@ -10,8 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 type CallStatus = "idle" | "connecting" | "connected" | "ended" | "calling";
 type CallMode = "web" | "phone";
 
-// Agent ID - Update this with your actual Retell agent ID
-const AGENT_ID = "agent_46dc0c6e9ac1a9e79a6b8e0131";
+// Agent ID - Your Retell agent
+const AGENT_ID = "agent_2778a51573b3963db22fe4b59c";
 
 const CallInterface = () => {
   const { toast } = useToast();
