@@ -52,14 +52,19 @@ serve(async (req) => {
 
     } else if (action === 'create-phone-call') {
       // Create an outbound phone call
-      const from_number = Deno.env.get('RETELL_FROM_NUMBER');
+      const from_number_raw = Deno.env.get('RETELL_FROM_NUMBER');
       
-      if (!from_number) {
+      if (!from_number_raw) {
         console.error('RETELL_FROM_NUMBER is not configured');
         throw new Error('RETELL_FROM_NUMBER is not configured. Please add your Retell outbound phone number.');
       }
       
-      console.log('Creating phone call from:', from_number, 'to:', phone_number, 'with agent_id:', agent_id);
+      // Clean phone numbers to E.164 format (remove spaces, dashes, parentheses)
+      const cleanPhoneNumber = (num: string) => num.replace(/[\s\-\(\)]/g, '');
+      const from_number = cleanPhoneNumber(from_number_raw);
+      const to_number = cleanPhoneNumber(phone_number);
+      
+      console.log('Creating phone call from:', from_number, 'to:', to_number, 'with agent_id:', agent_id);
       
       const response = await fetch('https://api.retellai.com/v2/create-phone-call', {
         method: 'POST',
@@ -69,7 +74,7 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           from_number: from_number,
-          to_number: phone_number,
+          to_number: to_number,
           agent_id: agent_id,
         }),
       });
