@@ -52,7 +52,14 @@ serve(async (req) => {
 
     } else if (action === 'create-phone-call') {
       // Create an outbound phone call
-      console.log('Creating phone call to:', phone_number, 'with agent_id:', agent_id);
+      const from_number = Deno.env.get('RETELL_FROM_NUMBER');
+      
+      if (!from_number) {
+        console.error('RETELL_FROM_NUMBER is not configured');
+        throw new Error('RETELL_FROM_NUMBER is not configured. Please add your Retell outbound phone number.');
+      }
+      
+      console.log('Creating phone call from:', from_number, 'to:', phone_number, 'with agent_id:', agent_id);
       
       const response = await fetch('https://api.retellai.com/v2/create-phone-call', {
         method: 'POST',
@@ -61,7 +68,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from_number: '+14154154155', // Your Retell phone number
+          from_number: from_number,
           to_number: phone_number,
           agent_id: agent_id,
         }),
