@@ -19,9 +19,6 @@ const Header = () => {
           <a href="#demo" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Demo
           </a>
-          <a href="https://shaktidashboard.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            Dashboard
-          </a>
         </nav>
 
         <div className="flex items-center gap-3">
