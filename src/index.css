@@ -6,6 +6,48 @@
 
 @layer base {
   :root {
+    --background: 0 0% 98%;
+    --foreground: 0 0% 8%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 8%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 8%;
+
+    --primary: 142 76% 36%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 94%;
+    --secondary-foreground: 0 0% 12%;
+
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 45%;
+
+    --accent: 142 76% 36%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 88%;
+    --input: 0 0% 88%;
+    --ring: 142 76% 36%;
+
+    --radius: 0.75rem;
+
+    /* Custom tokens */
+    --gradient-primary: linear-gradient(135deg, hsl(142 76% 36%) 0%, hsl(160 84% 32%) 100%);
+    --gradient-glow: radial-gradient(ellipse at center, hsl(142 76% 36% / 0.1) 0%, transparent 70%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(0 0% 96%) 100%);
+    
+    --shadow-glow: 0 0 60px hsl(142 76% 36% / 0.2);
+    --shadow-card: 0 4px 24px hsl(0 0% 0% / 0.08);
+    
+    --pulse-color: 142 76% 36%;
+  }
+
+  .dark {
     --background: 0 0% 4%;
     --foreground: 0 0% 98%;
 
@@ -34,9 +76,7 @@
     --input: 0 0% 16%;
     --ring: 142 76% 46%;
 
-    --radius: 0.75rem;
-
-    /* Custom tokens */
+    /* Custom tokens for dark */
     --gradient-primary: linear-gradient(135deg, hsl(142 76% 46%) 0%, hsl(160 84% 39%) 100%);
     --gradient-glow: radial-gradient(ellipse at center, hsl(142 76% 46% / 0.15) 0%, transparent 70%);
     --gradient-card: linear-gradient(180deg, hsl(0 0% 10%) 0%, hsl(0 0% 6%) 100%);
@@ -45,11 +85,6 @@
     --shadow-card: 0 4px 24px hsl(0 0% 0% / 0.4);
     
     --pulse-color: 142 76% 46%;
-  }
-
-  .dark {
-    --background: 0 0% 4%;
-    --foreground: 0 0% 98%;
   }
 }
 
