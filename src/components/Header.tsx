@@ -1,4 +1,5 @@
 import { Zap } from "lucide-react";
+import ThemeToggle from "./ThemeToggle";
 
 const Header = () => {
   return (
@@ -23,7 +24,8 @@ const Header = () => {
           </a>
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
           <span className="text-xs px-3 py-1 rounded-full bg-primary/10 text-primary font-medium">
             AI Agent
           </span>
