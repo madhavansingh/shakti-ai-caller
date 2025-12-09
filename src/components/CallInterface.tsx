@@ -1,19 +1,25 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Phone, PhoneOff, Mic, MicOff } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Phone, PhoneOff, Mic, MicOff, PhoneCall } from "lucide-react";
 import VoiceVisualizer from "./VoiceVisualizer";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
-type CallStatus = "idle" | "connecting" | "connected" | "ended";
+type CallStatus = "idle" | "connecting" | "connected" | "ended" | "calling";
+type CallMode = "web" | "phone";
 
-const RETELL_API_KEY = "key_49aaed0f538a2aaa06459160c17d";
+// Agent ID - Update this with your actual Retell agent ID
+const AGENT_ID = "agent_46dc0c6e9ac1a9e79a6b8e0131";
 
 const CallInterface = () => {
   const { toast } = useToast();
   const [callStatus, setCallStatus] = useState<CallStatus>("idle");
+  const [callMode, setCallMode] = useState<CallMode>("web");
   const [isMuted, setIsMuted] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
+  const [phoneNumber, setPhoneNumber] = useState("+916264638602");
   const [transcript, setTranscript] = useState<Array<{ role: string; text: string }>>([]);
   const retellClientRef = useRef<any>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -37,7 +43,7 @@ const CallInterface = () => {
     }
   }, []);
 
-  const startCall = async () => {
+  const startWebCall = async () => {
     try {
       setCallStatus("connecting");
       setTranscript([]);
@@ -52,23 +58,26 @@ const CallInterface = () => {
       // Request microphone permission
       await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      // Register call with Retell API
-      const response = await fetch("https://api.retellai.com/v2/create-web-call", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${RETELL_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          agent_id: "agent_46dc0c6e9ac1a9e79a6b8e0131",
-        }),
+      // Call our backend edge function
+      console.log("Calling edge function to create web call...");
+      const { data, error } = await supabase.functions.invoke('retell-call', {
+        body: { 
+          action: 'create-web-call',
+          agent_id: AGENT_ID 
+        }
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to create web call");
+      if (error) {
+        console.error("Edge function error:", error);
+        throw new Error(error.message || "Failed to create web call");
       }
 
-      const data = await response.json();
+      if (data.error) {
+        console.error("Retell API error:", data.error);
+        throw new Error(data.error);
+      }
+
+      console.log("Web call created:", data);
 
       // Set up event listeners
       retellClient.on("call_started", () => {
@@ -125,6 +134,50 @@ const CallInterface = () => {
     }
   };
 
+  const startPhoneCall = async () => {
+    try {
+      setCallStatus("calling");
+
+      console.log("Calling edge function to create phone call...");
+      const { data, error } = await supabase.functions.invoke('retell-call', {
+        body: { 
+          action: 'create-phone-call',
+          agent_id: AGENT_ID,
+          phone_number: phoneNumber
+        }
+      });
+
+      if (error) {
+        console.error("Edge function error:", error);
+        throw new Error(error.message || "Failed to create phone call");
+      }
+
+      if (data.error) {
+        console.error("Retell API error:", data.error);
+        throw new Error(data.error);
+      }
+
+      console.log("Phone call created:", data);
+
+      toast({
+        title: "Call Initiated",
+        description: `Calling ${phoneNumber}...`,
+      });
+
+      startTimer();
+      setCallStatus("connected");
+
+    } catch (error) {
+      console.error("Error starting phone call:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to start phone call",
+        variant: "destructive",
+      });
+      setCallStatus("idle");
+    }
+  };
+
   const endCall = async () => {
     try {
       if (retellClientRef.current) {
@@ -161,8 +214,47 @@ const CallInterface = () => {
 
   return (
     <div className="relative flex flex-col items-center gap-8">
+      {/* Mode toggle */}
+      <div className="flex gap-2 p-1 rounded-lg bg-secondary">
+        <button
+          onClick={() => setCallMode("web")}
+          className={cn(
+            "px-4 py-2 rounded-md text-sm font-medium transition-all",
+            callMode === "web" 
+              ? "bg-primary text-primary-foreground" 
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          Web Call
+        </button>
+        <button
+          onClick={() => setCallMode("phone")}
+          className={cn(
+            "px-4 py-2 rounded-md text-sm font-medium transition-all",
+            callMode === "phone" 
+              ? "bg-primary text-primary-foreground" 
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          Phone Call
+        </button>
+      </div>
+
+      {/* Phone number input for phone calls */}
+      {callMode === "phone" && callStatus === "idle" && (
+        <div className="w-full max-w-xs">
+          <Input
+            type="tel"
+            placeholder="+91 6264638602"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            className="text-center text-lg bg-secondary border-border"
+          />
+        </div>
+      )}
+
       {/* Ripple effects when calling */}
-      {callStatus === "connected" && (
+      {(callStatus === "connected" || callStatus === "calling") && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="absolute w-40 h-40 rounded-full border border-primary/30 animate-ripple" />
           <div className="absolute w-40 h-40 rounded-full border border-primary/30 animate-ripple-delayed" />
@@ -173,16 +265,24 @@ const CallInterface = () => {
       {/* Main call button */}
       <div className="relative">
         <Button
-          variant={callStatus === "connected" ? "call-end" : "call"}
+          variant={callStatus === "connected" || callStatus === "calling" ? "call-end" : "call"}
           size="icon-xl"
-          onClick={callStatus === "connected" ? endCall : startCall}
+          onClick={() => {
+            if (callStatus === "connected" || callStatus === "calling") {
+              endCall();
+            } else {
+              callMode === "web" ? startWebCall() : startPhoneCall();
+            }
+          }}
           disabled={callStatus === "connecting"}
           className={cn(
             callStatus === "connecting" && "opacity-70 cursor-wait"
           )}
         >
-          {callStatus === "connected" ? (
+          {callStatus === "connected" || callStatus === "calling" ? (
             <PhoneOff className="w-8 h-8" />
+          ) : callMode === "phone" ? (
+            <PhoneCall className="w-8 h-8" />
           ) : (
             <Phone className="w-8 h-8" />
           )}
@@ -193,11 +293,12 @@ const CallInterface = () => {
       <div className="text-center">
         <p className={cn(
           "text-lg font-medium",
-          callStatus === "connected" && "text-primary",
+          (callStatus === "connected" || callStatus === "calling") && "text-primary",
           callStatus === "connecting" && "text-muted-foreground animate-pulse"
         )}>
-          {callStatus === "idle" && "Tap to call Shakti AI"}
+          {callStatus === "idle" && (callMode === "web" ? "Tap to call Shakti AI" : "Tap to initiate phone call")}
           {callStatus === "connecting" && "Connecting..."}
+          {callStatus === "calling" && `Calling ${phoneNumber}...`}
           {callStatus === "connected" && formatDuration(callDuration)}
           {callStatus === "ended" && "Call ended"}
         </p>
@@ -209,13 +310,15 @@ const CallInterface = () => {
       </div>
 
       {/* Voice visualizer */}
-      <VoiceVisualizer 
-        isActive={callStatus === "connected" && !isMuted} 
-        className="h-12"
-      />
+      {callMode === "web" && (
+        <VoiceVisualizer 
+          isActive={callStatus === "connected" && !isMuted} 
+          className="h-12"
+        />
+      )}
 
       {/* Mute button */}
-      {callStatus === "connected" && (
+      {callStatus === "connected" && callMode === "web" && (
         <Button
           variant="outline"
           size="icon-lg"
