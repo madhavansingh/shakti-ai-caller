@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Phone, PhoneOff, Mic, MicOff, PhoneCall } from "lucide-react";
 import VoiceVisualizer from "./VoiceVisualizer";
 import { useToast } from "@/hooks/use-toast";
@@ -10,8 +11,9 @@ import { supabase } from "@/integrations/supabase/client";
 type CallStatus = "idle" | "connecting" | "connected" | "ended" | "calling";
 type CallMode = "web" | "phone";
 
-// Agent ID - Your Retell agent
+// Agent ID and LLM ID - Your Retell agent
 const AGENT_ID = "agent_2778a51573b3963db22fe4b59c";
+const LLM_ID = "llm_4b30b17031a77f7a4056ea4bd8d6";
 
 const CallInterface = () => {
   const { toast } = useToast();
@@ -19,7 +21,7 @@ const CallInterface = () => {
   const [callMode, setCallMode] = useState<CallMode>("web");
   const [isMuted, setIsMuted] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
-  const [phoneNumber, setPhoneNumber] = useState("+916264638602");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [transcript, setTranscript] = useState<Array<{ role: string; text: string }>>([]);
   const retellClientRef = useRef<any>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -28,6 +30,23 @@ const CallInterface = () => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const formatPhoneNumber = (value: string) => {
+    // Remove all non-digit characters except +
+    const cleaned = value.replace(/[^\d+]/g, '');
+    return cleaned;
+  };
+
+  const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhoneNumber(e.target.value);
+    setPhoneNumber(formatted);
+  };
+
+  const isValidPhoneNumber = (phone: string) => {
+    // Basic validation: must start with + and have at least 10 digits
+    const digitsOnly = phone.replace(/\D/g, '');
+    return phone.startsWith('+') && digitsOnly.length >= 10;
   };
 
   const startTimer = useCallback(() => {
@@ -135,6 +154,15 @@ const CallInterface = () => {
   };
 
   const startPhoneCall = async () => {
+    if (!isValidPhoneNumber(phoneNumber)) {
+      toast({
+        title: "Invalid Phone Number",
+        description: "Please enter a valid phone number with country code (e.g., +91 1234567890)",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setCallStatus("calling");
 
@@ -242,14 +270,23 @@ const CallInterface = () => {
 
       {/* Phone number input for phone calls */}
       {callMode === "phone" && callStatus === "idle" && (
-        <div className="w-full max-w-xs">
-          <Input
-            type="tel"
-            placeholder="+91 6264638602"
-            value={phoneNumber}
-            onChange={(e) => setPhoneNumber(e.target.value)}
-            className="text-center text-lg bg-secondary border-border"
-          />
+        <div className="w-full max-w-sm space-y-3">
+          <div className="space-y-2">
+            <Label htmlFor="phone-number" className="text-sm font-medium text-foreground">
+              Enter Phone Number
+            </Label>
+            <Input
+              id="phone-number"
+              type="tel"
+              placeholder="+91 1234567890"
+              value={phoneNumber}
+              onChange={handlePhoneNumberChange}
+              className="text-center text-lg bg-secondary border-border h-12"
+            />
+            <p className="text-xs text-muted-foreground text-center">
+              Include country code (e.g., +91 for India, +1 for US)
+            </p>
+          </div>
         </div>
       )}
 
